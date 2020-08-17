@@ -10,10 +10,10 @@
 # create a unique build-id value for this startup process
 # ===
 resource "random_string" "random-chars" {
-  length = 6
-  lower = false
-  upper = true
-  number = true
+  length  = 6
+  lower   = false
+  upper   = true
+  number  = true
   special = false
 }
 
@@ -21,7 +21,7 @@ resource "random_string" "random-chars" {
 # ===
 resource "tls_private_key" "terraform-bootstrap-sshkey" {
   algorithm = "RSA"
-  rsa_bits = "4096"
+  rsa_bits  = "4096"
 }
 
 # attach the temporary sshkey to the provider account for this image build
@@ -30,19 +30,19 @@ resource "tls_private_key" "terraform-bootstrap-sshkey" {
 # !!!  $ cat terraform.tfstate | jq --raw-output '.modules[1].resources["tls_private_key.terraform-bootstrap-sshkey"].primary.attributes.private_key_pem'
 # ===
 resource "digitalocean_ssh_key" "terraform-bootstrap-sshkey" {
-  name = "terraform-bootstrap-sshkey-${random_string.random-chars.result}"
-  public_key = "${tls_private_key.terraform-bootstrap-sshkey.public_key_openssh}"
-  depends_on = [ "random_string.random-chars", "tls_private_key.terraform-bootstrap-sshkey" ]
+  name       = "terraform-bootstrap-sshkey-${random_string.random-chars.result}"
+  public_key = tls_private_key.terraform-bootstrap-sshkey.public_key_openssh
+  depends_on = [random_string.random-chars, tls_private_key.terraform-bootstrap-sshkey]
 }
 
 # Render the required userdata
 # ===
 data "template_file" "cloudinit-bootstrap-sh" {
-  template = "${file("${path.module}/data/cloudinit-bootstrap.sh")}"
+  template = file("${path.module}/data/cloudinit-bootstrap.sh")
   vars {
-    volume0_dev = "${element(split(":", var.digitalocean_volume0),1)}"
-    volume0_mount = "${element(split(":", var.digitalocean_volume0),0)}"
-    volume0_fstype = "${element(split(":", var.digitalocean_volume0),3)}"
+    volume0_dev    = element(split(":", var.digitalocean_volume0), 1)
+    volume0_mount  = element(split(":", var.digitalocean_volume0), 0)
+    volume0_fstype = element(split(":", var.digitalocean_volume0), 3)
   }
 }
 
@@ -53,41 +53,41 @@ data "template_cloudinit_config" "droplet-userdata" {
   # NB: some kind of cloud-init issue prevents gzip+base64 from working with digitalocean, we (mostly) work around this
   # using a " echo | base64 -d | gunzip | /bin/bash" style pipe chain as per below
   #
-  gzip = false
+  gzip          = false
   base64_encode = false
 
   part {
     content_type = "text/x-shellscript"
-    filename = "cloudinit-bootstrap.sh"
-    content = "#!/bin/sh\necho -n '${base64gzip(data.template_file.cloudinit-bootstrap-sh.rendered)}' | base64 -d | gunzip | /bin/sh"
+    filename     = "cloudinit-bootstrap.sh"
+    content      = "#!/bin/sh\necho -n '${base64gzip(data.template_file.cloudinit-bootstrap-sh.rendered)}' | base64 -d | gunzip | /bin/sh"
   }
 }
 
 # Establish the digitalocean_droplet with a salt-masterless provisioner
 # ===
 resource "digitalocean_droplet" "droplet" {
-  image = "${var.digitalocean_image}"
-  name = "${var.hostname}"
-  region = "${var.digitalocean_region}"
-  size = "${var.digitalocean_size}"
-  backups = "${var.digitalocean_backups}"
-  monitoring = "${var.digitalocean_monitoring}"
-  ipv6 = "${var.digitalocean_ipv6}"
-  private_networking = "${var.digitalocean_private_networking}"
-  ssh_keys = [ "${digitalocean_ssh_key.terraform-bootstrap-sshkey.id}" ]
+  image              = var.digitalocean_image
+  name               = var.hostname
+  region             = var.digitalocean_region
+  size               = var.digitalocean_size
+  backups            = var.digitalocean_backups
+  monitoring         = var.digitalocean_monitoring
+  ipv6               = var.digitalocean_ipv6
+  private_networking = var.digitalocean_private_networking
+  ssh_keys           = [digitalocean_ssh_key.terraform-bootstrap-sshkey.id]
   # resize_disk = false   # default = true
-  tags = "${var.digitalocean_tags}"
-  user_data = "${data.template_cloudinit_config.droplet-userdata.rendered}"
-  volume_ids = [ "${element(split(":", var.digitalocean_volume0),2)}" ]
+  tags       = var.digitalocean_tags
+  user_data  = data.template_cloudinit_config.droplet-userdata.rendered
+  volume_ids = [element(split(":", var.digitalocean_volume0), 2)]
 
-  depends_on = [ "digitalocean_ssh_key.terraform-bootstrap-sshkey" ]
+  depends_on = [digitalocean_ssh_key.terraform-bootstrap-sshkey]
 
   connection {
-    type = "ssh"
-    user = "root"
-    timeout = "300"
-    agent = false
-    private_key = "${tls_private_key.terraform-bootstrap-sshkey.private_key_pem}"
+    type        = "ssh"
+    user        = "root"
+    timeout     = "300"
+    agent       = false
+    private_key = tls_private_key.terraform-bootstrap-sshkey.private_key_pem
   }
 
   provisioner "remote-exec" {
@@ -119,14 +119,14 @@ resource "digitalocean_droplet" "droplet" {
     # minion_config_file = "${var.salt_local_minion_config_file}"
     #
 
-    local_state_tree = "${var.salt_local_state_tree}"
-    local_pillar_roots = "${var.salt_local_pillar_roots}"
+    local_state_tree   = var.salt_local_state_tree
+    local_pillar_roots = var.salt_local_pillar_roots
 
-    remote_state_tree = "${var.salt_remote_state_tree}"
-    remote_pillar_roots = "${var.salt_remote_pillar_roots}"
+    remote_state_tree   = var.salt_remote_state_tree
+    remote_pillar_roots = var.salt_remote_pillar_roots
 
-    custom_state = "${var.salt_custom_state}"
-    log_level = "${var.salt_log_level}"
+    custom_state = var.salt_custom_state
+    log_level    = var.salt_log_level
   }
 }
 
@@ -134,50 +134,50 @@ resource "digitalocean_droplet" "droplet" {
 # driven by invoking `salt-call`
 # ===
 resource "null_resource" "disable-saltminion-service" {
-  count = "${var.disable_saltminion_service}"
+  count = var.disable_saltminion_service
 
   connection {
-    host = "${digitalocean_droplet.droplet.ipv4_address}"
-    type = "ssh"
-    user = "root"
-    timeout = "300"
-    agent = false
-    private_key = "${tls_private_key.terraform-bootstrap-sshkey.private_key_pem}"
+    host        = digitalocean_droplet.droplet.ipv4_address
+    type        = "ssh"
+    user        = "root"
+    timeout     = "300"
+    agent       = false
+    private_key = tls_private_key.terraform-bootstrap-sshkey.private_key_pem
   }
 
   provisioner "remote-exec" {
     inline = [
-      "export LANGUAGE='en_US.UTF-8'; export LANG='en_US.UTF-8'; export LC_ALL='en_US.UTF-8'",  # for this remote-exec session only
+      "export LANGUAGE='en_US.UTF-8'; export LANG='en_US.UTF-8'; export LC_ALL='en_US.UTF-8'", # for this remote-exec session only
       "systemctl stop salt-minion",
       "systemctl disable salt-minion",
     ]
   }
 
-  depends_on = [ "digitalocean_droplet.droplet" ]
+  depends_on = [digitalocean_droplet.droplet]
 }
 
 # cleanup and remove the root account if configured to do so
 # ===
 resource "null_resource" "disable-root-login" {
-  count = "${var.disable_root_login}"
+  count = var.disable_root_login
 
   connection {
-    host = "${digitalocean_droplet.droplet.ipv4_address}"
-    type = "ssh"
-    user = "root"
-    timeout = "300"
-    agent = false
-    private_key = "${tls_private_key.terraform-bootstrap-sshkey.private_key_pem}"
+    host        = digitalocean_droplet.droplet.ipv4_address
+    type        = "ssh"
+    user        = "root"
+    timeout     = "300"
+    agent       = false
+    private_key = tls_private_key.terraform-bootstrap-sshkey.private_key_pem
   }
 
   provisioner "remote-exec" {
     inline = [
-      "sleep 10",  # ugly hack to handle the race condition between "droplet-permitrootlogin" and "disable-saltminion-service" combined with the imposibility of var.disable_saltminion_service = 0
+      "sleep 10", # ugly hack to handle the race condition between "droplet-permitrootlogin" and "disable-saltminion-service" combined with the imposibility of var.disable_saltminion_service = 0
       "sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config",
       "rm -f /root/.ssh/authorized_keys",
       "rm -f /root/.ssh/*.pub",
     ]
   }
 
-  depends_on = [ "null_resource.disable-saltminion-service" ]
+  depends_on = [null_resource.disable-saltminion-service]
 }

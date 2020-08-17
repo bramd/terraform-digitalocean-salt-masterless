@@ -129,7 +129,7 @@ variable "digitalocean_volume0" {
 }
 
 variable "digitalocean_tags" {
-  type = "list"
+  type = list(string)
   description = "List of tags to apply to this Droplet, the tags MUST already exist!"
   default = []
 }
