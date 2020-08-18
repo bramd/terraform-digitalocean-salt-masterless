@@ -39,7 +39,7 @@ resource "digitalocean_ssh_key" "terraform-bootstrap-sshkey" {
 # ===
 data "template_file" "cloudinit-bootstrap-sh" {
   template = file("${path.module}/data/cloudinit-bootstrap.sh")
-  vars {
+  vars = {
     volume0_dev    = element(split(":", var.digitalocean_volume0), 1)
     volume0_mount  = element(split(":", var.digitalocean_volume0), 0)
     volume0_fstype = element(split(":", var.digitalocean_volume0), 3)
@@ -83,6 +83,7 @@ resource "digitalocean_droplet" "droplet" {
   depends_on = [digitalocean_ssh_key.terraform-bootstrap-sshkey]
 
   connection {
+    host        = self.ipv4_address
     type        = "ssh"
     user        = "root"
     timeout     = "300"
@@ -116,11 +117,10 @@ resource "digitalocean_droplet" "droplet" {
     # that is preventing p.RemoteStateTree and p.RemotePillarRoots being set when p.MinionConfig == "" which in turn
     # means it is not currently possible to use the "minion_config_file" option in this module until resolved
     #
-    # minion_config_file = "${var.salt_local_minion_config_file}"
-    #
+    # minion_config_file = var.salt_local_minion_config_file
 
-    local_state_tree   = var.salt_local_state_tree
-    local_pillar_roots = var.salt_local_pillar_roots
+    local_state_tree   = "${path.root}/salt/states"
+    local_pillar_roots = "${path.root}/salt/pillar"
 
     remote_state_tree   = var.salt_remote_state_tree
     remote_pillar_roots = var.salt_remote_pillar_roots
