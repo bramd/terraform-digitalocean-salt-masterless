@@ -81,7 +81,7 @@ resource "digitalocean_droplet" "droplet" {
   # resize_disk = false   # default = true
   tags       = var.digitalocean_tags
   user_data  = data.template_cloudinit_config.droplet-userdata.rendered
-  volume_ids = [element(split(":", var.digitalocean_volume0), 2)]
+  volume_ids = [element(split(":", var.digitalocean_volume0), 2), element(split(":", var.digitalocean_volume1), 2)]
 
   depends_on = [digitalocean_ssh_key.terraform-bootstrap-sshkey]
 
