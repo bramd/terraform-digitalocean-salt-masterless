@@ -96,6 +96,7 @@ resource "digitalocean_droplet" "droplet" {
       "while [ ! -e '/var/lib/cloud/instance/boot-finished' ]; do sleep 1; done",
       "mkdir -p `dirname \"${var.salt_remote_state_tree}\"`",
       "mkdir -p `dirname \"${var.salt_remote_pillar_roots}\"`",
+      "apt update -q && apt install -y python3-pygit2"
     ]
   }
 
