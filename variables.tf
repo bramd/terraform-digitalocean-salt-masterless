@@ -128,6 +128,20 @@ variable "digitalocean_volume0" {
   default = ""
 }
 
+variable "digitalocean_volume1" {
+  description = "Volume1 to attach to this digitalocean-droplet in the format <mount-point>:<mount-device>:<volume-id>:<mount-fstype> - review README for information on discovering the <volume-id> value."
+
+  #
+  # example value:
+  #   digitalocean_volume0 = "/mnt:/dev/disk/by-id/scsi-0DO_Volume_example01:0010c05e-20ad-10e0-9007-00000c113408:ext4"
+  #
+  # helpful cli tool to discover the <volume-id> value - use the "volumes" argument:
+  #   https://github.com/verbnetworks/digitalocean-api-query
+  #
+
+  default = ""
+}
+
 variable "digitalocean_tags" {
   type = list(string)
   description = "List of tags to apply to this Droplet, the tags MUST already exist!"

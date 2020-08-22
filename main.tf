@@ -43,6 +43,9 @@ data "template_file" "cloudinit-bootstrap-sh" {
     volume0_dev    = element(split(":", var.digitalocean_volume0), 1)
     volume0_mount  = element(split(":", var.digitalocean_volume0), 0)
     volume0_fstype = element(split(":", var.digitalocean_volume0), 3)
+    volume1_dev    = element(split(":", var.digitalocean_volume1), 1)
+    volume1_mount  = element(split(":", var.digitalocean_volume1), 0)
+    volume1_fstype = element(split(":", var.digitalocean_volume1), 3)
   }
 }
 
